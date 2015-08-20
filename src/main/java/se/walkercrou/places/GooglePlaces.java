@@ -1,17 +1,17 @@
 package se.walkercrou.places;
 
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import se.walkercrou.places.exception.GooglePlacesException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import se.walkercrou.places.exception.GooglePlacesException;
 
 public class GooglePlaces implements GooglePlacesInterface {
 
@@ -104,50 +104,52 @@ public class GooglePlaces implements GooglePlacesInterface {
                 return;
 
             JSONObject result = results.getJSONObject(i);
-
-            // location
-            JSONObject location = result.getJSONObject(OBJECT_GEOMETRY).getJSONObject(OBJECT_LOCATION);
-            double lat = location.getDouble(DOUBLE_LATITUDE);
-            double lon = location.getDouble(DOUBLE_LONGITUDE);
-
-            String placeId = result.getString(STRING_PLACE_ID);
-            String iconUrl = result.optString(STRING_ICON, null);
-            String name = result.optString(STRING_NAME);
-            String addr = result.optString(STRING_ADDRESS, null);
-            double rating = result.optDouble(DOUBLE_RATING, -1);
-            String vicinity = result.optString(STRING_VICINITY, null);
-
-            // see if the place is open, fail-safe if opening_hours is not present
-            JSONObject hours = result.optJSONObject(OBJECT_HOURS);
-            boolean hoursDefined = hours != null && hours.has(BOOLEAN_OPENED);
-            Status status = Status.NONE;
-            if (hoursDefined) {
-                boolean opened = hours.getBoolean(BOOLEAN_OPENED);
-                status = opened ? Status.OPENED : Status.CLOSED;
-            }
-
-            // get the price level for the place, fail-safe if not defined
-            boolean priceDefined = result.has(INTEGER_PRICE_LEVEL);
-            Price price = Price.NONE;
-            if (priceDefined) {
-                price = Price.values()[result.getInt(INTEGER_PRICE_LEVEL)];
-            }
-
-            // the place "types"
-            List<String> types = new ArrayList<>();
-            JSONArray jsonTypes = result.optJSONArray(ARRAY_TYPES);
-            if (jsonTypes != null) {
-                for (int a = 0; a < jsonTypes.length(); a++) {
-                    types.add(jsonTypes.getString(a));
-                }
-            }
-
-            Place place = new Place();
-
-            // build a place object
-            places.add(place.setClient(client).setPlaceId(placeId).setLatitude(lat).setLongitude(lon).setIconUrl(iconUrl).setName(name)
-                    .setAddress(addr).setRating(rating).setStatus(status).setPrice(price)
-                    .addTypes(types).setVicinity(vicinity).setJson(result));
+	        JSONObject wrapper = new JSONObject();
+	        wrapper.put("result", result);
+	        places.add(Place.parseDetails(client, wrapper.toString()));
+	        //            // location
+	        //            JSONObject location = result.getJSONObject(OBJECT_GEOMETRY).getJSONObject(OBJECT_LOCATION);
+	        //            double lat = location.getDouble(DOUBLE_LATITUDE);
+	        //            double lon = location.getDouble(DOUBLE_LONGITUDE);
+	        //
+	        //            String placeId = result.getString(STRING_PLACE_ID);
+	        //            String iconUrl = result.optString(STRING_ICON, null);
+	        //            String name = result.optString(STRING_NAME);
+	        //            String addr = result.optString(STRING_ADDRESS, null);
+	        //            double rating = result.optDouble(DOUBLE_RATING, -1);
+	        //            String vicinity = result.optString(STRING_VICINITY, null);
+	        //
+	        //            // see if the place is open, fail-safe if opening_hours is not present
+	        //            JSONObject hours = result.optJSONObject(OBJECT_HOURS);
+	        //            boolean hoursDefined = hours != null && hours.has(BOOLEAN_OPENED);
+	        //            Status status = Status.NONE;
+	        //            if (hoursDefined) {
+	        //                boolean opened = hours.getBoolean(BOOLEAN_OPENED);
+	        //                status = opened ? Status.OPENED : Status.CLOSED;
+	        //            }
+	        //
+	        //            // get the price level for the place, fail-safe if not defined
+	        //            boolean priceDefined = result.has(INTEGER_PRICE_LEVEL);
+	        //            Price price = Price.NONE;
+	        //            if (priceDefined) {
+	        //                price = Price.values()[result.getInt(INTEGER_PRICE_LEVEL)];
+	        //            }
+	        //
+	        //            // the place "types"
+	        //            List<String> types = new ArrayList<>();
+	        //            JSONArray jsonTypes = result.optJSONArray(ARRAY_TYPES);
+	        //            if (jsonTypes != null) {
+	        //                for (int a = 0; a < jsonTypes.length(); a++) {
+	        //                    types.add(jsonTypes.getString(a));
+	        //                }
+	        //            }
+	        //
+	        //            Place place = new Place();
+	        //
+	        //            // build a place object
+	        //            places.add(place.setClient(client).setPlaceId(placeId).setLatitude(lat).setLongitude(lon).setIconUrl(iconUrl).setName(name)
+	        //                    .setAddress(addr).setRating(rating).setStatus(status).setPrice(price)
+	        //                    .addTypes(types).setVicinity(vicinity).setJson(result));
         }
     }
 
@@ -187,66 +189,96 @@ public class GooglePlaces implements GooglePlacesInterface {
     }
 
     @Override
-    public List<Place> getNearbyPlaces(double lat, double lng, double radius, int limit, Param... extraParams) {
+    public PlaceResponse getNearbyPlaces(double lat, double lng, double radius, int limit, Param... extraParams) {
         try {
             String uri = buildUrl(METHOD_NEARBY_SEARCH, String.format(Locale.ENGLISH, "key=%s&location=%f,%f&radius=%f",
                     apiKey, lat, lng, radius), extraParams);
-            return getPlaces(uri, METHOD_NEARBY_SEARCH, limit);
+	        return getPlaces(uri, limit);
         } catch (Exception e) {
             throw new GooglePlacesException(e);
         }
     }
 
     @Override
-    public List<Place> getNearbyPlaces(double lat, double lng, double radius, Param... extraParams) {
+    public PlaceResponse getNearbyPlaces(double lat, double lng, double radius, Param... extraParams) {
         return getNearbyPlaces(lat, lng, radius, DEFAULT_RESULTS, extraParams);
     }
 
-    @Override
-    public List<Place> getNearbyPlacesRankedByDistance(double lat, double lng, int limit, Param... params) {
-        try {
-            String uri = buildUrl(METHOD_NEARBY_SEARCH, String.format("key=%s&location=%f,%f&rankby=distance",
-                    apiKey, lat, lng), params);
-            return getPlaces(uri, METHOD_NEARBY_SEARCH, limit);
-        } catch (Exception e) {
-            throw new GooglePlacesException(e);
-        }
-    }
+	@Override
+	public PlaceResponse getNearbyPlaces(String nextPageToken) {
+		String uri = buildUrl(METHOD_NEARBY_SEARCH, String.format("key=%s&pagetoken=%s", apiKey, nextPageToken));
+		try {
+			return getPlacesNextPage(uri);
+		} catch (Exception e) {
+			throw new GooglePlacesException(e);
+		}
+	}
+
+	@Override
+	public PlaceResponse getNearbyPlacesRankedByDistance(double lat, double lng, int limit, Param... params) {
+		try {
+			String uri = buildUrl(METHOD_NEARBY_SEARCH, String.format("key=%s&location=%f,%f&rankby=distance",
+				apiKey, lat, lng), params);
+			return getPlaces(uri, limit);
+		} catch (Exception e) {
+			throw new GooglePlacesException(e);
+		}
+	}
 
     @Override
-    public List<Place> getNearbyPlacesRankedByDistance(double lat, double lng, Param... params) {
+    public PlaceResponse getNearbyPlacesRankedByDistance(double lat, double lng, Param... params) {
         return getNearbyPlacesRankedByDistance(lat, lng, DEFAULT_RESULTS, params);
     }
 
+	@Override
+	public PlaceResponse getNearbyPlacesRankedByDistance(String nextPageToken) {
+		String uri = buildUrl(METHOD_NEARBY_SEARCH, String.format("key=%s&pagetoken=%s", apiKey, nextPageToken));
+		try {
+			return getPlacesNextPage(uri);
+		} catch (Exception e) {
+			throw new GooglePlacesException(e);
+		}
+	}
+
     @Override
-    public List<Place> getPlacesByQuery(String query, int limit, Param... extraParams) {
+    public PlaceResponse getPlacesByQuery(String query, int limit, Param... extraParams) {
         try {
             String uri = buildUrl(METHOD_TEXT_SEARCH, String.format("query=%s&key=%s", query, apiKey),
                     extraParams);
-            return getPlaces(uri, METHOD_TEXT_SEARCH, limit);
+	        return getPlaces(uri, limit);
         } catch (Exception e) {
             throw new GooglePlacesException(e);
         }
     }
 
     @Override
-    public List<Place> getPlacesByQuery(String query, Param... extraParams) {
+    public PlaceResponse getPlacesByQuery(String query, Param... extraParams) {
         return getPlacesByQuery(query, DEFAULT_RESULTS, extraParams);
     }
 
-    @Override
-    public List<Place> getPlacesByRadar(double lat, double lng, double radius, int limit, Param... extraParams) {
-        try {
-            String uri = buildUrl(METHOD_RADAR_SEARCH, String.format(Locale.ENGLISH, "key=%s&location=%f,%f&radius=%f",
-                    apiKey, lat, lng, radius), extraParams);
-            return getPlaces(uri, METHOD_RADAR_SEARCH, limit);
-        } catch (Exception e) {
-            throw new GooglePlacesException(e);
-        }
-    }
+	@Override
+	public PlaceResponse getPlacesByQuery(String nextPageToken) {
+		String uri = buildUrl(METHOD_TEXT_SEARCH, String.format("key=%s&pagetoken=%s", apiKey, nextPageToken));
+		try {
+			return getPlacesNextPage(uri);
+		} catch (Exception e) {
+			throw new GooglePlacesException(e);
+		}
+	}
+
+	@Override
+	public PlaceResponse getPlacesByRadar(double lat, double lng, double radius, int limit, Param... extraParams) {
+		try {
+			String uri = buildUrl(METHOD_RADAR_SEARCH, String.format(Locale.ENGLISH, "key=%s&location=%f,%f&radius=%f",
+				apiKey, lat, lng, radius), extraParams);
+			return getPlaces(uri, limit);
+		} catch (Exception e) {
+			throw new GooglePlacesException(e);
+		}
+	}
 
     @Override
-    public List<Place> getPlacesByRadar(double lat, double lng, double radius, Param... extraParams) {
+    public PlaceResponse getPlacesByRadar(double lat, double lng, double radius, Param... extraParams) {
         return getPlacesByRadar(lat, lng, radius, MAXIMUM_RESULTS, extraParams);
     }
 
@@ -310,27 +342,32 @@ public class GooglePlaces implements GooglePlacesInterface {
 
     protected InputStream downloadPhoto(Photo photo, int maxWidth, int maxHeight, Param... extraParams) {
         try {
-            String uri = String.format("%sphoto?photoreference=%s&key=%s", API_URL, photo.getReference(),
-                    apiKey);
-
-            List<Param> params = new ArrayList<>(Arrays.asList(extraParams));
-            if (maxHeight != -1) params.add(Param.name("maxheight").value(maxHeight));
-            if (maxWidth != -1) params.add(Param.name("maxwidth").value(maxWidth));
-            extraParams = params.toArray(new Param[params.size()]);
-            uri = addExtraParams(uri, extraParams);
-
-            return download(uri);
+	        return download(getPhotoUrlByReference(photo.getReference(), maxWidth, maxHeight, extraParams));
         } catch (Exception e) {
             throw new GooglePlacesException(e);
         }
     }
 
+	public String getPhotoUrlByReference(String reference, int maxWidth, int maxHeight, Param... extraParams) {
+		String uri = String.format("%sphoto?photoreference=%s&key=%s", API_URL, reference, apiKey);
+
+		List<Param> params = new ArrayList<>(Arrays.asList(extraParams));
+		if (maxHeight != -1) {
+			params.add(Param.name("maxheight").value(maxHeight));
+		}
+		if (maxWidth != -1) {
+			params.add(Param.name("maxwidth").value(maxWidth));
+		}
+		extraParams = params.toArray(new Param[params.size()]);
+		return addExtraParams(uri, extraParams);
+	}
+
     private List<Prediction> getPredictions(String input, String method, Param... extraParams) {
         try {
             String uri = buildUrl(method, String.format("input=%s&key=%s", input, apiKey),
-                    extraParams);
-            String response = requestHandler.get(uri);
-            return Prediction.parse(this, response);
+	            extraParams);
+	        String response = requestHandler.get(uri);
+	        return Prediction.parse(this, response);
         } catch (Exception e) {
             throw new GooglePlacesException(e);
         }
@@ -382,37 +419,22 @@ public class GooglePlaces implements GooglePlacesInterface {
         return getQueryPredictions(input, -1, extraParams);
     }
 
-    private List<Place> getPlaces(String uri, String method, int limit) throws IOException {
-
-        limit = Math.min(limit, MAXIMUM_RESULTS); // max of 60 results possible
-        int pages = (int) Math.ceil(limit / (double) MAXIMUM_PAGE_RESULTS);
+	private PlaceResponse getPlaces(String uri, int limit) throws IOException {
+		limit = Math.min(limit, MAXIMUM_RESULTS); // max of 20 results possible
 
         List<Place> places = new ArrayList<>();
-        // new request for each page
-        for (int i = 0; i < pages; i++) {
-            debug("Page: " + (i + 1));
-            String raw = requestHandler.get(uri);
-            debug(raw);
-            String nextPage = parse(this, places, raw, limit);
-            if (nextPage != null) {
-                limit -= MAXIMUM_PAGE_RESULTS;
-                uri = String.format("%s%s/json?pagetoken=%s&key=%s",
-                        API_URL, method, nextPage, apiKey);
-                sleep(3000); // Page tokens have a delay before they are available
-            } else {
-                break;
-            }
-        }
+		String raw = requestHandler.get(uri);
+		debug(raw);
+		String nextPage = parse(this, places, raw, limit);
 
-        return places;
-    }
+		return new PlaceResponse(nextPage, places);
+	}
 
-    private void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
+	private PlaceResponse getPlacesNextPage(String uri) throws IOException {
+		List<Place> places = new ArrayList<>();
+		String raw = requestHandler.get(uri);
+		debug(raw);
+		String nextPage = parse(this, places, raw, MAXIMUM_RESULTS);
+		return new PlaceResponse(nextPage, places);
+	}
 }
