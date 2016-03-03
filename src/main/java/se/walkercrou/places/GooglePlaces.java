@@ -17,7 +17,7 @@ public class GooglePlaces implements GooglePlacesInterface {
 
     private String apiKey;
     private RequestHandler requestHandler;
-    private boolean debugModeEnabled;
+	private boolean debugModeEnabled;
 
     /**
      * Creates a new GooglePlaces object using the specified API key and the specified {@link RequestHandler}.
@@ -61,8 +61,8 @@ public class GooglePlaces implements GooglePlacesInterface {
         String url = String.format(Locale.ENGLISH, "%s%s/json?%s", API_URL, method, params);
         url = addExtraParams(url, extraParams);
         url = url.replace(' ', '+');
-        return url;
-    }
+		return url;
+	}
 
     protected static void checkStatus(String statusCode, String errorMessage) {
         GooglePlacesException e = GooglePlacesException.parse(statusCode, errorMessage);
@@ -364,24 +364,26 @@ public class GooglePlaces implements GooglePlacesInterface {
 
     private List<Prediction> getPredictions(String input, String method, Param... extraParams) {
         try {
-            String uri = buildUrl(method, String.format("input=%s&key=%s", input, apiKey),
-	            extraParams);
-	        String response = requestHandler.get(uri);
-	        return Prediction.parse(this, response);
-        } catch (Exception e) {
-            throw new GooglePlacesException(e);
-        }
-    }
+			String uri = buildUrl(method, String.format("input=%s&key=%s", input, apiKey), extraParams);
+			debug("GOOGLE Prediction uri: " + uri);
+			String response = requestHandler.get(uri);
+			return Prediction.parse(this, response);
+		} catch (Exception e) {
+			throw new GooglePlacesException(e);
+		}
+	}
 
     @Override
-    public List<Prediction> getPlacePredictions(String input, int offset, int lat, int lng, int radius,
-                                                Param... extraParams) {
-        List<Param> params = new ArrayList<>();
-        if (offset != -1)
-            params.add(Param.name("offset").value(offset));
-        if (lat != -1 && lng != -1)
-            params.add(Param.name("location").value(lat + "," + lng));
-        params.addAll(new ArrayList<>(Arrays.asList(extraParams)));
+	public List<Prediction> getPlacePredictions(String input, int offset, double lat, double lng, int radius,
+		Param... extraParams) {
+		List<Param> params = new ArrayList<>();
+		if (offset != -1) {
+			params.add(Param.name("offset").value(offset));
+		}
+		if (lat != -1 && lng != -1) {
+			params.add(Param.name("location").value(lat + "," + lng));
+		}
+		params.addAll(new ArrayList<>(Arrays.asList(extraParams)));
 
         return getPredictions(input, METHOD_AUTOCOMPLETE, params.toArray(new Param[params.size()]));
     }
@@ -397,14 +399,16 @@ public class GooglePlaces implements GooglePlacesInterface {
     }
 
     @Override
-    public List<Prediction> getQueryPredictions(String input, int offset, int lat, int lng, int radius,
-                                                Param... extraParams) {
-        List<Param> params = new ArrayList<>();
-        if (offset != -1)
-            params.add(Param.name("offset").value(offset));
-        if (lat == -1 && lng == -1)
-            params.add(Param.name("location").value(lat + "," + lng));
-        params.addAll(new ArrayList<>(Arrays.asList(extraParams)));
+	public List<Prediction> getQueryPredictions(String input, int offset, double lat, double lng, int radius,
+		Param... extraParams) {
+		List<Param> params = new ArrayList<>();
+		if (offset != -1) {
+			params.add(Param.name("offset").value(offset));
+		}
+		if (lat == -1 && lng == -1) {
+			params.add(Param.name("location").value(lat + "," + lng));
+		}
+		params.addAll(new ArrayList<>(Arrays.asList(extraParams)));
 
         return getPredictions(input, METHOD_QUERY_AUTOCOMPLETE, params.toArray(new Param[params.size()]));
     }
@@ -424,7 +428,8 @@ public class GooglePlaces implements GooglePlacesInterface {
 
         List<Place> places = new ArrayList<>();
 		String raw = requestHandler.get(uri);
-		debug(raw);
+		debug("GOOGLE PLACES CALL:\n" + uri);
+		debug("GOOGLE RESULT:\n" + raw);
 		String nextPage = parse(this, places, raw, limit);
 
 		return new PlaceResponse(nextPage, places);
@@ -433,7 +438,8 @@ public class GooglePlaces implements GooglePlacesInterface {
 	private PlaceResponse getPlacesNextPage(String uri) throws IOException {
 		List<Place> places = new ArrayList<>();
 		String raw = requestHandler.get(uri);
-		debug(raw);
+		debug("GOOGLE PLACES CALL:\n" + uri);
+		debug("GOOGLE RESULT:\n" + raw);
 		String nextPage = parse(this, places, raw, MAXIMUM_RESULTS);
 		return new PlaceResponse(nextPage, places);
 	}

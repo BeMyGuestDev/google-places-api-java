@@ -575,8 +575,8 @@ interface GooglePlacesInterface extends Types, Statuses {
      *
      * @return list of predictions
      */
-    List<Prediction> getPlacePredictions(String input, int offset, int lat, int lng, int radius,
-                                                Param... extraParams);
+	List<Prediction> getPlacePredictions(String input, int offset, double lat, double lng, int radius,
+		Param... extraParams);
 
     /**
      * Returns a list of auto-complete predictions for searching for a specific place. The 'offset' is the position, in
@@ -617,8 +617,8 @@ interface GooglePlacesInterface extends Types, Statuses {
      *
      * @return list of predictions
      */
-    List<Prediction> getQueryPredictions(String input, int offset, int lat, int lng, int radius,
-                                                Param... extraParams);
+	List<Prediction> getQueryPredictions(String input, int offset, double lat, double lng, int radius,
+		Param... extraParams);
 
     /**
      * Returns a list of auto-complete predictions for searching for a place by a query. The 'offset' is the position,
