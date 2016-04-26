@@ -383,6 +383,9 @@ public class GooglePlaces implements GooglePlacesInterface {
 		if (lat != -1 && lng != -1) {
 			params.add(Param.name("location").value(lat + "," + lng));
 		}
+		if (radius > 0) {
+			params.add(Param.name("radius").value(radius));
+		}
 		params.addAll(new ArrayList<>(Arrays.asList(extraParams)));
 
         return getPredictions(input, METHOD_AUTOCOMPLETE, params.toArray(new Param[params.size()]));
@@ -407,6 +410,9 @@ public class GooglePlaces implements GooglePlacesInterface {
 		}
 		if (lat == -1 && lng == -1) {
 			params.add(Param.name("location").value(lat + "," + lng));
+		}
+		if (radius > 0) {
+			params.add(Param.name("radius").value(radius));
 		}
 		params.addAll(new ArrayList<>(Arrays.asList(extraParams)));
 
